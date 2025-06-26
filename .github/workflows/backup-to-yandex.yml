@@ -1,0 +1,33 @@
+name: Backup to Yandex Cloud
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  upload-to-s3:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install awscli
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y awscli
+
+      - name: Archive repository
+        run: |
+          git archive --format=tar.gz -o repo.tar.gz HEAD
+
+      - name: Upload archive to Yandex Object Storage
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.YC_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.YC_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: 'ru-central1'
+          S3_ENDPOINT: 'https://storage.yandexcloud.net'
+          S3_BUCKET: ${{ secrets.YC_BUCKET }}
+        run: |
+          aws --endpoint-url $S3_ENDPOINT s3 cp repo.tar.gz s3://$S3_BUCKET/repo-$(date +%Y%m%d-%H%M%S).tar.gz
